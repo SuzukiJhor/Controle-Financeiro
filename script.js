@@ -18,41 +18,42 @@ const removeTransaction = ID => {
 
 }
 
-const addTransactionIntoDOM = (transaction) => {
-    const operator = transaction.amount < 0 ? '-' : '+'
-    const CSSClass = transaction.amount < 0 ? 'minus' : 'plus'
-    const amountWithoutOperator = Math.abs(transaction.amount);
+const addTransactionIntoDOM = ({ amount, name, id }) => {
+    const operator = amount < 0 ? '-' : '+'
+    const CSSClass = amount < 0 ? 'minus' : 'plus'
+    const amountWithoutOperator = Math.abs(amount);
     const li = document.createElement('li');
 
     li.classList.add(CSSClass)
     li.innerHTML = ` 
-    ${transaction.name} 
+    ${name} 
     <span>${operator}R$ ${amountWithoutOperator}</span>
-    <button class="delete-btn" onClick='removeTransaction(${transaction.id})'>
-    x
-    </button>
+    <button class="delete-btn" onClick='removeTransaction(${id})'>x</button>
     `
     transactionsUl.append(li)
 }
 
-const updateBalanceValue = () => {
-    const transactionsAmounts = transactions
-        .map(transaction => transaction.amount)
-    const total = transactionsAmounts
-        .reduce((accumulator, transaction) => accumulator + transaction, 0)
-        .toFixed(2)
-    const income = transactionsAmounts
-        .filter(value => value > 0)
-        .reduce((accumulator, value) => accumulator + value, 0)
-        .toFixed(2)
-    const expense = Math.abs(transactionsAmounts
-            .filter(value => value < 0)
-            .reduce((accumulator, value) => accumulator + value, 0))
-        .toFixed(2)
+const getTotal = transactionsAmounts => transactionsAmounts
+    .reduce((accumulator, value) => accumulator + value, 0)
+    .toFixed(2)
 
-    balanceDisplay.textContent = `R$ ${total}`
-    incomeDisplay.textContent = `R$ ${income}`
-    expenseDisplay.textContent = `R$ ${expense}`
+const getIncome = transactionsAmounts => transactionsAmounts
+    .filter(value => value > 0)
+    .reduce((accumulator, value) => accumulator + value, 0)
+    .toFixed(2)
+
+const getExpenses = transactionsAmounts => Math.abs(transactionsAmounts
+        .filter(value => value < 0)
+        .reduce((accumulator, value) => accumulator + value, 0))
+    .toFixed(2)
+
+
+const updateBalanceValue = () => {
+    const transactionsAmounts = transactions.map(amount => amount)
+
+    balanceDisplay.textContent = `R$ ${getTotal()}`
+    incomeDisplay.textContent = `R$ ${getIncome(transactionsAmounts)}`
+    expenseDisplay.textContent = `R$ ${getExpenses(transactionsAmounts)}`
 
 }
 
@@ -71,28 +72,37 @@ const updateLocalStorage = () => {
 
 const generateID = () => Math.round(Math.random() * 1000)
 
-// Método 'trim()' remove qualquer espaço em branco do inicio ao fim da string.
-form.addEventListener('submit', event => {
+const addToTransactionsArray = (transactionName, transactionAmount) => {
+    transactions.push({
+        id: generateID(),
+        name: transactionName,
+        amount: Number(transactionAmount)
+    })
+}
+
+const cleanInputs = () => {
+    inputTransactionName.value = '';
+    inputTransactionAmount.value = '';
+}
+
+const handleFormSubmit = event => {
     event.preventDefault()
 
     const transactionName = inputTransactionName.value.trim()
     const transactionAmount = inputTransactionAmount.value.trim()
+    const isSomeInputEmpty = transactionName === '' || transactionAmount === ''
 
-    if (transactionName === '' || transactionAmount === '') {
+    if (isSomeInputEmpty) {
         alert('Por favor, preencha tanto o nome quanto o valor da transação!')
         return
     }
-    const transaction = {
-        id: generateID(),
-        name: transactionName,
-        amount: Number(transactionAmount)
-    }
 
-    transactions.push(transaction)
+    addToTransactionsArray(transactionName, transactionAmount)
     init()
     updateLocalStorage()
 
-    inputTransactionName.value = '';
-    inputTransactionAmount.value = '';
+    cleanInputs()
 
-})
+}
+
+form.addEventListener('submit', handleFormSubmit)
